@@ -100,6 +100,7 @@ import {AccessibilitySettingsScreen} from './screens/Settings/AccessibilitySetti
 import {AccountSettingsScreen} from './screens/Settings/AccountSettings'
 import {AppPasswordsScreen} from './screens/Settings/AppPasswords'
 import {ContentAndMediaSettingsScreen} from './screens/Settings/ContentAndMediaSettings'
+import {DeerSettingsScreen} from './screens/Settings/DeerSettings'
 import {ExternalMediaPreferencesScreen} from './screens/Settings/ExternalMediaPreferences'
 import {FollowingFeedPreferencesScreen} from './screens/Settings/FollowingFeedPreferences'
 import {LanguageSettingsScreen} from './screens/Settings/LanguageSettings'
@@ -350,6 +351,14 @@ function commonScreens(Stack: typeof HomeTab, unreadCountLabel?: string) {
         getComponent={() => AccessibilitySettingsScreen}
         options={{
           title: title(msg`Accessibility Settings`),
+          requireAuth: true,
+        }}
+      />
+      <Stack.Screen
+        name="DeerSettings"
+        getComponent={() => DeerSettingsScreen}
+        options={{
+          title: title(msg`Deer Settings`),
           requireAuth: true,
         }}
       />
