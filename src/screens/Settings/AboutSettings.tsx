@@ -1,14 +1,12 @@
-import {useMemo} from 'react'
 import {Platform} from 'react-native'
 import {setStringAsync} from 'expo-clipboard'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
-import {NativeStackScreenProps} from '@react-navigation/native-stack'
-import {Statsig} from 'statsig-react-native-expo'
+import {type NativeStackScreenProps} from '@react-navigation/native-stack'
 
 import {appVersion, BUNDLE_DATE, bundleInfo} from '#/lib/app-info'
 import {STATUS_PAGE_URL} from '#/lib/constants'
-import {CommonNavigatorParams} from '#/lib/routes/types'
+import {type CommonNavigatorParams} from '#/lib/routes/types'
 import {useDevModeEnabled} from '#/state/preferences/dev-mode'
 import * as Toast from '#/view/com/util/Toast'
 import * as SettingsList from '#/screens/Settings/components/SettingsList'
@@ -23,7 +21,7 @@ type Props = NativeStackScreenProps<CommonNavigatorParams, 'AboutSettings'>
 export function AboutSettingsScreen({}: Props) {
   const {_} = useLingui()
   const [devModeEnabled, setDevModeEnabled] = useDevModeEnabled()
-  const stableID = useMemo(() => Statsig.getStableID(), [])
+  const stableID = `DEER_SOCIAL_OOPS`
 
   return (
     <Layout.Screen>

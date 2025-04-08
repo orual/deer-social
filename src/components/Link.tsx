@@ -1,12 +1,12 @@
 import React from 'react'
-import {GestureResponderEvent} from 'react-native'
+import {type GestureResponderEvent} from 'react-native'
 import {sanitizeUrl} from '@braintree/sanitize-url'
 import {StackActions, useLinkProps} from '@react-navigation/native'
 
 import {BSKY_DOWNLOAD_URL} from '#/lib/constants'
 import {useNavigationDeduped} from '#/lib/hooks/useNavigationDeduped'
 import {useOpenLink} from '#/lib/hooks/useOpenLink'
-import {AllNavigatorParams} from '#/lib/routes/types'
+import {type AllNavigatorParams} from '#/lib/routes/types'
 import {shareUrl} from '#/lib/sharing'
 import {
   convertBskyAppUrlIfNeeded,
@@ -16,10 +16,11 @@ import {
 } from '#/lib/strings/url-helpers'
 import {isNative, isWeb} from '#/platform/detection'
 import {useModalControls} from '#/state/modals'
-import {atoms as a, flatten, TextStyleProp, useTheme, web} from '#/alf'
-import {Button, ButtonProps} from '#/components/Button'
+import {useGoLinksEnabled} from '#/state/preferences'
+import {atoms as a, flatten, type TextStyleProp, useTheme, web} from '#/alf'
+import {Button, type ButtonProps} from '#/components/Button'
 import {useInteractionState} from '#/components/hooks/useInteractionState'
-import {Text, TextProps} from '#/components/Typography'
+import {Text, type TextProps} from '#/components/Typography'
 import {router} from '#/routes'
 
 /**
@@ -100,6 +101,8 @@ export function useLink({
   const {openModal, closeModal} = useModalControls()
   const openLink = useOpenLink()
 
+  const goLinksEnabled = useGoLinksEnabled()
+
   const onPress = React.useCallback(
     (e: GestureResponderEvent) => {
       const exitEarlyIfFalse = outerOnPress?.(e)
@@ -125,7 +128,8 @@ export function useLink({
         })
       } else {
         if (isExternal) {
-          openLink(href, overridePresentation, shouldProxy)
+          // openLink(href, overridePresentation, shouldProxy)
+          openLink(href, overridePresentation, goLinksEnabled && shouldProxy)
         } else {
           const shouldOpenInNewTab = shouldClickOpenNewTab(e)
 
@@ -169,6 +173,7 @@ export function useLink({
       navigation,
       overridePresentation,
       shouldProxy,
+      goLinksEnabled,
     ],
   )
 

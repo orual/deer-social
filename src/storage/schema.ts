@@ -10,6 +10,9 @@ export type Device = {
   }
   trendingBetaEnabled: boolean
   devMode: boolean
+
+  // deer
+  deerGateCache: string
 }
 
 export type Account = {
