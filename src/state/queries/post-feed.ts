@@ -1,18 +1,18 @@
 import React, {useCallback, useEffect, useRef} from 'react'
 import {AppState} from 'react-native'
 import {
-  AppBskyActorDefs,
+  type AppBskyActorDefs,
   AppBskyFeedDefs,
-  AppBskyFeedPost,
+  type AppBskyFeedPost,
   AtUri,
-  BskyAgent,
+  type BskyAgent,
   moderatePost,
-  ModerationDecision,
+  type ModerationDecision,
 } from '@atproto/api'
 import {
-  InfiniteData,
-  QueryClient,
-  QueryKey,
+  type InfiniteData,
+  type QueryClient,
+  type QueryKey,
   useInfiniteQuery,
 } from '@tanstack/react-query'
 
@@ -23,9 +23,9 @@ import {HomeFeedAPI} from '#/lib/api/feed/home'
 import {LikesFeedAPI} from '#/lib/api/feed/likes'
 import {ListFeedAPI} from '#/lib/api/feed/list'
 import {MergeFeedAPI} from '#/lib/api/feed/merge'
-import {FeedAPI, ReasonFeedSource} from '#/lib/api/feed/types'
+import {type FeedAPI, type ReasonFeedSource} from '#/lib/api/feed/types'
 import {aggregateUserInterests} from '#/lib/api/feed/utils'
-import {FeedTuner, FeedTunerFn} from '#/lib/api/feed-manip'
+import {FeedTuner, type FeedTunerFn} from '#/lib/api/feed-manip'
 import {DISCOVER_FEED_URI} from '#/lib/constants'
 import {BSKY_FEED_OWNER_DIDS} from '#/lib/constants'
 import {logger} from '#/logger'
@@ -36,6 +36,7 @@ import * as userActionHistory from '#/state/userActionHistory'
 import {KnownError} from '#/view/com/posts/PostFeedErrorMessage'
 import {useFeedTuners} from '../preferences/feed-tuners'
 import {useModerationOpts} from '../preferences/moderation-opts'
+import {useNoDiscoverFallback} from '../preferences/no-discover-fallback'
 import {usePreferencesQuery} from './preferences'
 import {
   didOrHandleUriMatches,
@@ -135,7 +136,9 @@ export function usePostFeedQuery(
     preferences?.savedFeeds?.findIndex(
       f => f.pinned && f.value === 'following',
     ) ?? -1
-  const enableFollowingToDiscoverFallback = followingPinnedIndex === 0
+  const noDiscoverFallback = useNoDiscoverFallback()
+  const enableFollowingToDiscoverFallback =
+    followingPinnedIndex === 0 && !noDiscoverFallback
   const agent = useAgent()
   const lastRun = useRef<{
     data: InfiniteData<FeedPageUnselected>
