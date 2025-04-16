@@ -384,12 +384,24 @@ async function responseToThreadNodes(
     }
   } else if (AppBskyFeedDefs.isBlockedPost(node)) {
     const post = (await directFetchPostRecord(agent, node.uri))!
-    return responseToThreadNodes(
-      agent,
-      {$type: 'app.bsky.feed.defs#threadViewPost', post},
-      depth,
-      'start',
-    )
+    const record = post.record
+    const newNode: ThreadViewNode = {
+      $type: 'app.bsky.feed.defs#threadViewPost',
+      post,
+    }
+    if (
+      bsky.dangerousIsType<AppBskyFeedPost.Record>(
+        record,
+        AppBskyFeedPost.isRecord,
+      ) &&
+      record.reply
+    ) {
+      newNode.parent = {
+        $type: 'app.bsky.feed.defs#blockedPost',
+        uri: record.reply.parent.uri,
+      }
+    }
+    return responseToThreadNodes(agent, newNode, depth, 'start')
     // return {type: 'blocked', _reactKey: node.uri, uri: node.uri, ctx: {depth}}
   } else if (AppBskyFeedDefs.isNotFoundPost(node)) {
     return {type: 'not-found', _reactKey: node.uri, uri: node.uri, ctx: {depth}}
