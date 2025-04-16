@@ -24,6 +24,8 @@ import {
 } from '#/state/queries/search-posts'
 import {useAgent} from '#/state/session'
 import * as bsky from '#/types/bsky'
+import {useConstellationEnabled} from '../preferences/constellation-enabled'
+import {useDirectFetchRecords} from '../preferences/direct-fetch-records'
 import {directFetchPostRecord} from './direct-fetch-record'
 import {
   findAllPostsInQueryData as findAllPostsInNotifsQueryData,
@@ -98,9 +100,19 @@ export type PostThreadQueryData = {
   threadgate?: AppBskyFeedDefs.ThreadgateView
 }
 
+type DeerPostPrefs = {
+  directFetchRecords: boolean
+  constellationEnabled: boolean
+}
+
 export function usePostThreadQuery(uri: string | undefined) {
   const queryClient = useQueryClient()
   const agent = useAgent()
+
+  const directFetchRecords = useDirectFetchRecords() ?? false
+  const constellationEnabled = useConstellationEnabled() ?? false
+  const deerPrefs: DeerPostPrefs = {directFetchRecords, constellationEnabled}
+
   return useQuery<PostThreadQueryData, Error>({
     gcTime: 0,
     queryKey: RQKEY(uri || ''),
@@ -110,7 +122,11 @@ export function usePostThreadQuery(uri: string | undefined) {
         depth: REPLY_TREE_DEPTH,
       })
       if (res.success) {
-        const thread = await responseToThreadNodes(agent, res.data.thread)
+        const thread = await responseToThreadNodes(
+          agent,
+          deerPrefs,
+          res.data.thread,
+        )
         annotateSelfThread(thread)
         return {
           thread,
@@ -334,6 +350,7 @@ function getHotness(threadPost: ThreadPost, fetchedAt: number) {
 
 async function responseToThreadNodes(
   agent: BskyAgent,
+  postPrefs: DeerPostPrefs,
   node: ThreadViewNode,
   depth = 0,
   direction: 'up' | 'down' | 'start' = 'start',
@@ -360,18 +377,31 @@ async function responseToThreadNodes(
       record: node.post.record,
       parent:
         node.parent && direction !== 'down'
-          ? await responseToThreadNodes(agent, node.parent, depth - 1, 'up')
+          ? await responseToThreadNodes(
+              agent,
+              postPrefs,
+              node.parent,
+              depth - 1,
+              'up',
+            )
           : undefined,
       replies:
         node.replies?.length && direction !== 'up'
-          ? await Promise.all(
-              node.replies.map(reply =>
-                responseToThreadNodes(agent, reply, depth + 1, 'down'),
-              ),
-            )
-          : // do not show blocked posts in replies
-            // .filter(node => node.type !== 'blocked')
-            undefined,
+          ? (
+              await Promise.all(
+                node.replies.map(reply =>
+                  responseToThreadNodes(
+                    agent,
+                    postPrefs,
+                    reply,
+                    depth + 1,
+                    'down',
+                  ),
+                ),
+                // do not show blocked posts in replies
+              )
+            ).filter(node => node.type !== 'blocked')
+          : undefined,
       hasOPLike: Boolean(node?.threadContext?.rootAuthorLike),
       ctx: {
         depth,
@@ -383,26 +413,28 @@ async function responseToThreadNodes(
       },
     }
   } else if (AppBskyFeedDefs.isBlockedPost(node)) {
-    const post = (await directFetchPostRecord(agent, node.uri))!
-    const record = post.record
-    const newNode: ThreadViewNode = {
-      $type: 'app.bsky.feed.defs#threadViewPost',
-      post,
-    }
-    if (
-      bsky.dangerousIsType<AppBskyFeedPost.Record>(
-        record,
-        AppBskyFeedPost.isRecord,
-      ) &&
-      record.reply
-    ) {
-      newNode.parent = {
-        $type: 'app.bsky.feed.defs#blockedPost',
-        uri: record.reply.parent.uri,
+    if (postPrefs.directFetchRecords) {
+      const post = (await directFetchPostRecord(agent, node.uri))!
+      const record = post.record
+      const newNode: ThreadViewNode = {
+        $type: 'app.bsky.feed.defs#threadViewPost',
+        post,
       }
+      if (
+        bsky.dangerousIsType<AppBskyFeedPost.Record>(
+          record,
+          AppBskyFeedPost.isRecord,
+        ) &&
+        record.reply
+      ) {
+        newNode.parent = {
+          $type: 'app.bsky.feed.defs#blockedPost',
+          uri: record.reply.parent.uri,
+        }
+      }
+      return responseToThreadNodes(agent, postPrefs, newNode, depth, 'start')
     }
-    return responseToThreadNodes(agent, newNode, depth, 'start')
-    // return {type: 'blocked', _reactKey: node.uri, uri: node.uri, ctx: {depth}}
+    return {type: 'blocked', _reactKey: node.uri, uri: node.uri, ctx: {depth}}
   } else if (AppBskyFeedDefs.isNotFoundPost(node)) {
     return {type: 'not-found', _reactKey: node.uri, uri: node.uri, ctx: {depth}}
   } else {
