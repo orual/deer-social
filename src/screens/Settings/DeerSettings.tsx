@@ -184,7 +184,7 @@ export function DeerSettingsScreen({}: Props) {
             <Toggle.Item
               name="direct_fetch_records"
               label={_(
-                msg`Fetch records directly from PDS to see through quote blocks`,
+                msg`Fetch records directly from PDS to see contents of blocked/detatched quotes and blocked parent replies`,
               )}
               value={directFetchRecords}
               onChange={value => {
@@ -195,7 +195,7 @@ export function DeerSettingsScreen({}: Props) {
               <Toggle.LabelText style={[a.flex_1]}>
                 <Trans>
                   Fetch records directly from PDS to see contents of
-                  blocked/detatched quotes and thread immediate ancestors
+                  blocked/detatched quotes and blocked parent replies
                 </Trans>
               </Toggle.LabelText>
               <Toggle.Platform />
@@ -203,7 +203,7 @@ export function DeerSettingsScreen({}: Props) {
             <Toggle.Item
               name="constellation_fallback"
               label={_(
-                msg`Use constellation api to discover blocked replies and ancestors`,
+                msg`Use constellation api to discover blocked post's children replies, ancestors, interactions`,
               )}
               disabled={!directFetchRecords}
               value={constellationEnabled}
@@ -211,8 +211,8 @@ export function DeerSettingsScreen({}: Props) {
               style={[a.w_full]}>
               <Toggle.LabelText style={[a.flex_1]}>
                 <Trans>
-                  Use constellation api to discover blocked replies and
-                  ancestors
+                  Use constellation api to discover blocked post's children
+                  replies, ancestors, interactions
                 </Trans>
               </Toggle.LabelText>
               <Toggle.Platform />
