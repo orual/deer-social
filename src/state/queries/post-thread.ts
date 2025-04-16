@@ -398,9 +398,10 @@ async function responseToThreadNodes(
                     'down',
                   ),
                 ),
-                // do not show blocked posts in replies
               )
-            ).filter(node => node.type !== 'blocked')
+            )
+              // do not show blocked posts in replies
+              .filter(node => node.type !== 'blocked')
           : undefined,
       hasOPLike: Boolean(node?.threadContext?.rootAuthorLike),
       ctx: {
