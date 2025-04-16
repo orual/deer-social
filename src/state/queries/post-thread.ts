@@ -5,6 +5,7 @@ import {
   type AppBskyFeedGetPostThread,
   AppBskyFeedPost,
   AtUri,
+  type BskyAgent,
   moderatePost,
   type ModerationDecision,
   type ModerationOpts,
@@ -23,6 +24,7 @@ import {
 } from '#/state/queries/search-posts'
 import {useAgent} from '#/state/session'
 import * as bsky from '#/types/bsky'
+import {directFetchPostRecord} from './direct-fetch-record'
 import {
   findAllPostsInQueryData as findAllPostsInNotifsQueryData,
   findAllProfilesInQueryData as findAllProfilesInNotifsQueryData,
@@ -108,7 +110,7 @@ export function usePostThreadQuery(uri: string | undefined) {
         depth: REPLY_TREE_DEPTH,
       })
       if (res.success) {
-        const thread = responseToThreadNodes(res.data.thread)
+        const thread = await responseToThreadNodes(agent, res.data.thread)
         annotateSelfThread(thread)
         return {
           thread,
@@ -330,11 +332,12 @@ function getHotness(threadPost: ThreadPost, fetchedAt: number) {
   return likeOrder / timePenalty
 }
 
-function responseToThreadNodes(
+async function responseToThreadNodes(
+  agent: BskyAgent,
   node: ThreadViewNode,
   depth = 0,
   direction: 'up' | 'down' | 'start' = 'start',
-): ThreadNode {
+): Promise<ThreadNode> {
   if (
     AppBskyFeedDefs.isThreadViewPost(node) &&
     bsky.dangerousIsType<AppBskyFeedPost.Record>(
@@ -357,15 +360,18 @@ function responseToThreadNodes(
       record: node.post.record,
       parent:
         node.parent && direction !== 'down'
-          ? responseToThreadNodes(node.parent, depth - 1, 'up')
+          ? await responseToThreadNodes(agent, node.parent, depth - 1, 'up')
           : undefined,
       replies:
         node.replies?.length && direction !== 'up'
-          ? node.replies
-              .map(reply => responseToThreadNodes(reply, depth + 1, 'down'))
-              // do not show blocked posts in replies
-              .filter(node => node.type !== 'blocked')
-          : undefined,
+          ? await Promise.all(
+              node.replies.map(reply =>
+                responseToThreadNodes(agent, reply, depth + 1, 'down'),
+              ),
+            )
+          : // do not show blocked posts in replies
+            // .filter(node => node.type !== 'blocked')
+            undefined,
       hasOPLike: Boolean(node?.threadContext?.rootAuthorLike),
       ctx: {
         depth,
@@ -377,7 +383,14 @@ function responseToThreadNodes(
       },
     }
   } else if (AppBskyFeedDefs.isBlockedPost(node)) {
-    return {type: 'blocked', _reactKey: node.uri, uri: node.uri, ctx: {depth}}
+    const post = (await directFetchPostRecord(agent, node.uri))!
+    return responseToThreadNodes(
+      agent,
+      {$type: 'app.bsky.feed.defs#threadViewPost', post},
+      depth,
+      'start',
+    )
+    // return {type: 'blocked', _reactKey: node.uri, uri: node.uri, ctx: {depth}}
   } else if (AppBskyFeedDefs.isNotFoundPost(node)) {
     return {type: 'not-found', _reactKey: node.uri, uri: node.uri, ctx: {depth}}
   } else {
