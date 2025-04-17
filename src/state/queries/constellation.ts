@@ -85,6 +85,10 @@ export async function constellationCounts(params: {target: string}) {
   }
 }
 
+export function asUri(link: ConstellationLink): string {
+  return `at://${link.did}/${link.collection}/${link.rkey}`
+}
+
 export async function* asyncGenMap<K, V>(
   gen: AsyncGenerator<K, void, unknown>,
   fn: (_: K) => V,
@@ -94,8 +98,13 @@ export async function* asyncGenMap<K, V>(
   }
 }
 
-export function asUri(link: ConstellationLink): string {
-  return `at://${link.did}/${link.collection}/${link.rkey}`
+export async function* asyncGenFilter<K>(
+  gen: AsyncGenerator<K, void, unknown>,
+  predicate: (_: K) => boolean,
+) {
+  for await (const v of gen) {
+    if (predicate(v)) yield v
+  }
 }
 
 export async function asyncGenCollect<V>(

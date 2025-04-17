@@ -29,6 +29,7 @@ import {useDirectFetchRecords} from '../preferences/direct-fetch-records'
 import {
   asUri,
   asyncGenCollect,
+  asyncGenFilter,
   asyncGenMap,
   constellationCounts,
   constellationLinks,
@@ -382,7 +383,7 @@ async function responseToThreadNodes(
         ? responseToThreadNodes(agent, postPrefs, node.parent, depth - 1, 'up')
         : undefined
 
-    const replies =
+    const appviewReplies =
       node.replies?.length && direction !== 'up'
         ? (async () =>
             (
@@ -401,6 +402,38 @@ async function responseToThreadNodes(
               // do not show blocked posts in replies
               .filter(node => node.type !== 'blocked'))()
         : undefined
+
+    const blockedReplies = (async () => {
+      if (direction === 'up') return
+      const counts = await constellationCounts({target: node.post.uri})
+
+      if (counts.replyCount <= (node.replies?.length ?? 0)) return
+
+      // we filter to prune entire branches that the appview will provide, since finding replies will recursively explore the tree
+      const replyFilter = new Set(
+        ((await appviewReplies) ?? []).map(r => r.uri),
+      )
+      return findAllReplies(
+        agent,
+        postPrefs,
+        node.post.uri,
+        depth,
+        uri => !replyFilter.has(uri),
+      )
+    })()
+
+    const replies = (async () => {
+      // widen type for the concat
+      const appview: ThreadNode[] | undefined = await appviewReplies
+      const blocked = await blockedReplies
+      // gross evil logic to ensure replies is undefined if both are undefined
+      // not sure if this is important
+      if (appview === undefined) return blocked
+      if (blocked === undefined) return appview
+      return appview.concat(blocked)
+    })()
+
+    console.log(await replies)
 
     return {
       type: 'post',
@@ -438,12 +471,44 @@ async function responseToThreadNodes(
   }
 }
 
+async function findAllReplies(
+  agent: BskyAgent,
+  postPrefs: DeerPostPrefs,
+  uri: string,
+  currentDepth: number,
+  filter = (_: string) => true,
+) {
+  return asyncGenCollect(
+    asyncGenMap(
+      asyncGenFilter(
+        asyncGenMap(
+          constellationLinks({
+            target: uri,
+            collection: 'app.bsky.feed.post',
+            path: '.reply.parent.uri',
+          }),
+          asUri,
+        ),
+        filter,
+      ),
+      uri =>
+        responseToBlockedThreadNodes(
+          agent,
+          postPrefs,
+          uri,
+          currentDepth + 1,
+          'down',
+        ),
+    ),
+  )
+}
+
 async function responseToBlockedThreadNodes(
   agent: BskyAgent,
   postPrefs: DeerPostPrefs,
   uri: string,
-  depth = 0,
-  direction: 'up' | 'down' | 'start' = 'start',
+  depth: number,
+  direction: 'up' | 'down' | 'start',
 ): Promise<ThreadNode> {
   // kick these off first to run in parallel!
   // no dependency on the record
@@ -451,26 +516,7 @@ async function responseToBlockedThreadNodes(
 
   const replies =
     direction !== 'up'
-      ? asyncGenCollect(
-          asyncGenMap(
-            asyncGenMap(
-              constellationLinks({
-                target: uri,
-                collection: 'app.bsky.feed.post',
-                path: '.reply.parent.uri',
-              }),
-              asUri,
-            ),
-            uri =>
-              responseToBlockedThreadNodes(
-                agent,
-                postPrefs,
-                uri,
-                depth + 1,
-                'down',
-              ),
-          ),
-        )
+      ? findAllReplies(agent, postPrefs, uri, depth)
       : undefined
 
   const post = (await directFetchPostRecord(agent, uri))!
