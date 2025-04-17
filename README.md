@@ -67,6 +67,8 @@ feature to be compatible or drop it from the client.
 
 For this reason, bias towards features that change a relatively small amount of code that is present upstream.
 
+Without an overriding motivation, opinionated features should exist behind a toggle that is not enabled by default. This allows deer.social to cater to as many users as possible.
+
 **Guidelines:**
 
 - Check for existing issues before filing a new one please.
@@ -75,6 +77,7 @@ For this reason, bias towards features that change a relatively small amount of 
 - Stay away from PRs like...
   - Changing "Post" to "Skeet."
   - Refactoring the codebase, e.g., to replace MobX with Redux or something.
+- Include a new toggle and preference for your feature.
 
 If we don't merge your PR for whatever reason, you are welcome to fork and/or self host:
 
