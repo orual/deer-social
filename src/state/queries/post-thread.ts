@@ -404,7 +404,7 @@ async function responseToThreadNodes(
         : undefined
 
     const blockedReplies = (async () => {
-      if (direction === 'up') return
+      if (direction === 'up' || !postPrefs.constellationEnabled) return
       const counts = await constellationCounts({target: node.post.uri})
 
       if (counts.replyCount <= (node.replies?.length ?? 0)) return
@@ -512,10 +512,11 @@ async function responseToBlockedThreadNodes(
 ): Promise<ThreadNode> {
   // kick these off first to run in parallel!
   // no dependency on the record
-  const counts = constellationCounts({target: uri})
+  const counts =
+    postPrefs.constellationEnabled && constellationCounts({target: uri})
 
   const replies =
-    direction !== 'up'
+    direction !== 'up' && postPrefs.constellationEnabled
       ? findAllReplies(agent, postPrefs, uri, depth)
       : undefined
 
