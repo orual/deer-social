@@ -8,6 +8,24 @@ Get the app itself:
 - ~**iOS: [App Store]()**~ WIP
 - ~**Android: [Play Store]()**~ WIP
 
+## Features Today
+
+- toggle to disable go.bsky.app link proxying for analytics
+- toggle to disable default app labeler
+- toggle to disable falling back to discover feed in the following feed
+- see through quote blocks and detatchments (nuclear block wrt quotes)
+  - <img src="https://github.com/user-attachments/assets/e5084afd-b17e-43a7-9622-f6d7f19f53ca" width="300px" />
+- enable features gates
+- configure the location used to determine regional labelers
+- entirely ignore `!no-unauthenticated` labels, even for logged out users
+
+### WIP/Planned
+
+- rewrite shared URLs to reference deer.social
+- opengraph support for sharing posts and profiles
+- selecting custom appviews
+- seeing past blocks in post threads (nuclear block for reply chains)
+
 ## Philosophy
 
 - by default, deer.social should very similar to the official client
@@ -78,9 +96,9 @@ advertising your hosted instance or builds as "official" releases.
 ## Security disclosures
 
 If you discover any security issues, please send an email to aviva@rubenfamily.com.
-If the issue pertains to infastructure, code, or systems outside the scope of deer.social, please refer to the [disclosure guidelines on social-app](https://github.com/bluesky-social/social-app#security-disclosures).
-
-
+If the issue pertains to infastructure, code, or systems outside the scope of deer.social, please refer to the
+[disclosure guidelines on social-app](https://github.com/bluesky-social/social-app#security-disclosures) if it is hosted by Bluesky PBC. Otherwise, reference the
+security policy of that system as applicable <3
 
 ## License (MIT)
 
