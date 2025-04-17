@@ -3,7 +3,7 @@ import {Modal, View} from 'react-native'
 import {KeyboardAwareScrollView} from 'react-native-keyboard-controller'
 import {useSafeAreaInsets} from 'react-native-safe-area-context'
 import {StatusBar} from 'expo-status-bar'
-import {ComAtprotoAdminDefs, ComAtprotoModerationDefs} from '@atproto/api'
+import {type ComAtprotoAdminDefs, ComAtprotoModerationDefs} from '@atproto/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useMutation} from '@tanstack/react-query'
@@ -215,7 +215,7 @@ export function Takendown() {
                   Your account was found to be in violation of the{' '}
                   <InlineLinkText
                     label={_(msg`Bluesky Social Terms of Service`)}
-                    to="https://bsky.social/about/support/tos"
+                    to="https://deer.social/about/tos"
                     style={[a.text_md, a.leading_normal]}
                     overridePresentation>
                     Bluesky Social Terms of Service
