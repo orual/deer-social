@@ -1,10 +1,3 @@
-// import {
-//   AtUri,
-//   type BskyAgent,
-// } from '@atproto/api'
-
-// import { retry } from '#/lib/async/retry'
-
 const CONSTELLATION_INSTANCE = 'https://constellation.microcosm.blue/'
 
 type ConstellationLink = {
@@ -28,22 +21,28 @@ type Collection =
   | 'app.bsky.graph.starterpack'
   | 'chat.bsky.actor.declaration'
 
-// using an async generator lets us kick off dependent requests before finishing pagination
-// this doesn't solve the gross N+1 queries thing going on here to get records, but it should make it faster :3
-export async function* constellationRequest(
-  route: string,
-  params: {target: string; collection: Collection; path: string},
-) {
-  const headers = new Headers({
-    Accept: 'application/json',
-    'User-Agent': 'deer.social (contact @aviva.gay)',
-  })
+const headers = new Headers({
+  Accept: 'application/json',
+  'User-Agent': 'deer.social (contact @aviva.gay)',
+})
 
+const makeReqUrl = (route: string, params: Record<string, string>) => {
   const url = new URL(CONSTELLATION_INSTANCE)
   url.pathname = route
   for (const [k, v] of Object.entries(params)) {
     url.searchParams.set(k, v)
   }
+  return url
+}
+
+// using an async generator lets us kick off dependent requests before finishing pagination
+// this doesn't solve the gross N+1 queries thing going on here to get records, but it should make it faster :3
+export async function* constellationLinks(params: {
+  target: string
+  collection: Collection
+  path: string
+}) {
+  const url = makeReqUrl('links', params)
 
   const req = async () =>
     (await (await fetch(url, {method: 'GET', headers})).json()) as {
@@ -66,9 +65,29 @@ export async function* constellationRequest(
   }
 }
 
+export async function constellationCounts(params: {target: string}) {
+  const url = makeReqUrl('links/all', params)
+  const json = (await (await fetch(url, {method: 'GET', headers})).json()) as {
+    links: {
+      [P in Collection]?: {
+        [k: string]: {distinct_dids: number; records: number} | undefined
+      }
+    }
+  }
+  const links = json.links
+  return {
+    likeCount:
+      links?.['app.bsky.feed.like']?.['.subject.uri']?.distinct_dids ?? 0,
+    repostCount:
+      links?.['app.bsky.feed.repost']?.['.subject.uri']?.distinct_dids ?? 0,
+    replyCount:
+      links?.['app.bsky.feed.post']?.['.reply.parent.uri']?.records ?? 0,
+  }
+}
+
 export async function* asyncGenMap<K, V>(
   gen: AsyncGenerator<K, void, unknown>,
-  fn: (_: K) => Promise<V>,
+  fn: (_: K) => V,
 ) {
   for await (const v of gen) {
     yield fn(v)
@@ -77,4 +96,14 @@ export async function* asyncGenMap<K, V>(
 
 export function asUri(link: ConstellationLink): string {
   return `at://${link.did}/${link.collection}/${link.rkey}`
+}
+
+export async function asyncGenCollect<V>(
+  gen: AsyncGenerator<V, void, unknown>,
+) {
+  const out = []
+  for await (const v of gen) {
+    out.push(v)
+  }
+  return out
 }

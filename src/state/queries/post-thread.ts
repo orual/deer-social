@@ -26,6 +26,13 @@ import {useAgent} from '#/state/session'
 import * as bsky from '#/types/bsky'
 import {useConstellationEnabled} from '../preferences/constellation-enabled'
 import {useDirectFetchRecords} from '../preferences/direct-fetch-records'
+import {
+  asUri,
+  asyncGenCollect,
+  asyncGenMap,
+  constellationCounts,
+  constellationLinks,
+} from './constellation'
 import {directFetchPostRecord} from './direct-fetch-record'
 import {
   findAllPostsInQueryData as findAllPostsInNotifsQueryData,
@@ -369,27 +376,18 @@ async function responseToThreadNodes(
     post.replyCount ??= 0
     post.likeCount ??= 0
     post.repostCount ??= 0
-    return {
-      type: 'post',
-      _reactKey: node.post.uri,
-      uri: node.post.uri,
-      post: post,
-      record: node.post.record,
-      parent:
-        node.parent && direction !== 'down'
-          ? await responseToThreadNodes(
-              agent,
-              postPrefs,
-              node.parent,
-              depth - 1,
-              'up',
-            )
-          : undefined,
-      replies:
-        node.replies?.length && direction !== 'up'
-          ? (
+
+    const parent =
+      node.parent && direction !== 'down'
+        ? responseToThreadNodes(agent, postPrefs, node.parent, depth - 1, 'up')
+        : undefined
+
+    const replies =
+      node.replies?.length && direction !== 'up'
+        ? (async () =>
+            (
               await Promise.all(
-                node.replies.map(reply =>
+                node.replies!.map(reply =>
                   responseToThreadNodes(
                     agent,
                     postPrefs,
@@ -401,8 +399,17 @@ async function responseToThreadNodes(
               )
             )
               // do not show blocked posts in replies
-              .filter(node => node.type !== 'blocked')
-          : undefined,
+              .filter(node => node.type !== 'blocked'))()
+        : undefined
+
+    return {
+      type: 'post',
+      _reactKey: node.post.uri,
+      uri: node.post.uri,
+      post: post,
+      record: node.post.record,
+      parent: await parent,
+      replies: await replies,
       hasOPLike: Boolean(node?.threadContext?.rootAuthorLike),
       ctx: {
         depth,
@@ -415,31 +422,100 @@ async function responseToThreadNodes(
     }
   } else if (AppBskyFeedDefs.isBlockedPost(node)) {
     if (postPrefs.directFetchRecords) {
-      const post = (await directFetchPostRecord(agent, node.uri))!
-      const record = post.record
-      const newNode: ThreadViewNode = {
-        $type: 'app.bsky.feed.defs#threadViewPost',
-        post,
-      }
-      if (
-        bsky.dangerousIsType<AppBskyFeedPost.Record>(
-          record,
-          AppBskyFeedPost.isRecord,
-        ) &&
-        record.reply
-      ) {
-        newNode.parent = {
-          $type: 'app.bsky.feed.defs#blockedPost',
-          uri: record.reply.parent.uri,
-        }
-      }
-      return responseToThreadNodes(agent, postPrefs, newNode, depth, 'start')
+      return responseToBlockedThreadNodes(
+        agent,
+        postPrefs,
+        node.uri,
+        depth,
+        direction,
+      )
     }
     return {type: 'blocked', _reactKey: node.uri, uri: node.uri, ctx: {depth}}
   } else if (AppBskyFeedDefs.isNotFoundPost(node)) {
     return {type: 'not-found', _reactKey: node.uri, uri: node.uri, ctx: {depth}}
   } else {
     return {type: 'unknown', uri: ''}
+  }
+}
+
+async function responseToBlockedThreadNodes(
+  agent: BskyAgent,
+  postPrefs: DeerPostPrefs,
+  uri: string,
+  depth = 0,
+  direction: 'up' | 'down' | 'start' = 'start',
+): Promise<ThreadNode> {
+  // kick these off first to run in parallel!
+  // no dependency on the record
+  const counts = constellationCounts({target: uri})
+
+  const replies =
+    direction !== 'up'
+      ? asyncGenCollect(
+          asyncGenMap(
+            asyncGenMap(
+              constellationLinks({
+                target: uri,
+                collection: 'app.bsky.feed.post',
+                path: '.reply.parent.uri',
+              }),
+              asUri,
+            ),
+            uri =>
+              responseToBlockedThreadNodes(
+                agent,
+                postPrefs,
+                uri,
+                depth + 1,
+                'down',
+              ),
+          ),
+        )
+      : undefined
+
+  const post = (await directFetchPostRecord(agent, uri))!
+  const record = post.record
+  // WARN: TODO: validate since this is pds data lol
+  if (
+    !bsky.dangerousIsType<AppBskyFeedPost.Record>(
+      record,
+      AppBskyFeedPost.isRecord,
+    )
+  ) {
+    // fall back, pds did something funky
+    return {type: 'blocked', _reactKey: uri, uri, ctx: {depth}}
+  }
+
+  const parent =
+    record.reply?.parent && direction !== 'down'
+      ? responseToBlockedThreadNodes(
+          agent,
+          postPrefs,
+          record.reply.parent.uri,
+          depth - 1,
+          'up',
+        )
+      : undefined
+
+  return {
+    type: 'post',
+    _reactKey: post.uri,
+    uri: post.uri,
+    post: {...post, ...(await counts)},
+    record,
+    parent: await parent,
+    replies: await replies,
+    // TODO: can do this with an extra constellations query...
+    // hasOPLike: Boolean(node?.threadContext?.rootAuthorLike),
+    hasOPLike: false,
+    ctx: {
+      depth,
+      isHighlightedPost: depth === 0,
+      hasMore:
+        direction === 'down' && !(await replies)?.length && !!post.replyCount,
+      isSelfThread: false, // populated `annotateSelfThread`
+      hasMoreSelfThread: false, // populated in `annotateSelfThread`
+    },
   }
 }
 
