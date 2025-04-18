@@ -20,7 +20,9 @@ import * as TextField from '#/components/forms/TextField'
 import {Envelope_Stroke2_Corner0_Rounded as Envelope} from '#/components/icons/Envelope'
 import {Lock_Stroke2_Corner0_Rounded as Lock} from '#/components/icons/Lock'
 import {Ticket_Stroke2_Corner0_Rounded as Ticket} from '#/components/icons/Ticket'
+import {InlineLinkText} from '#/components/Link'
 import {Loader} from '#/components/Loader'
+import {Text} from '#/components/Typography'
 import {BackNextButtons} from '../BackNextButtons'
 
 function sanitizeDate(date: Date): Date {
@@ -167,6 +169,20 @@ export function StepInfo({
           serviceUrl={state.serviceUrl}
           onSelectServiceUrl={v => dispatch({type: 'setServiceUrl', value: v})}
         />
+        {state.serviceUrl === 'https://example.com' && (
+          <Text style={[a.gap_md, a.leading_snug]}>
+            <Trans>
+              Don't have a service URL? To use a Bluesky-hosted PDS, sign up
+              through{' '}
+              {
+                <InlineLinkText label={_(msg`bsky.app`)} to="https://bsky.app">
+                  <Trans>bsky.app</Trans>
+                </InlineLinkText>
+              }{' '}
+              first then return to deer.social and log in with it.
+            </Trans>
+          </Text>
+        )}
         {state.isLoading || isLoadingStarterPack ? (
           <View style={[a.align_center]}>
             <Loader size="xl" />

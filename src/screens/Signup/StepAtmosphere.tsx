@@ -58,9 +58,8 @@ export function StepAtmosphere({
               </InlineLinkText>
             }
             —the network of apps, services, and accounts built on the AT
-            Protocol. For example, if you already have a Bluesky account you are
-            already part of this ecosystem. That means you can sign in right now
-            with your existing account.
+            Protocol. If you have a Bluesky account, you're already part of this
+            ecosystem and can sign in right now with your existing account.
           </Trans>
         </Text>
         <View style={isWeb && [a.flex_row, a.justify_start]}>
@@ -81,9 +80,8 @@ export function StepAtmosphere({
         </View>
         <Text style={[a.gap_md, t.atoms.text_contrast_medium, a.leading_snug]}>
           <Trans>
-            Don’t have an account in the ATmosphere yet? You can create one on
-            the next page. Just note that you'll need to choose a Personal Data
-            Server (
+            Don’t have an account in the ATmosphere yet? Create one on the next
+            page if you have a Personal Data Server (
             {
               <InlineLinkText
                 label={_(msg`PDS`)}
@@ -91,9 +89,14 @@ export function StepAtmosphere({
                 <Trans>PDS</Trans>
               </InlineLinkText>
             }
-            ) that isn’t hosted by Bluesky. If you want to use a Bluesky-hosted
-            PDS, you’ll need to sign up through bsky.app first, then return here
-            to continue.
+            ) that isn’t hosted by Bluesky. To use a Bluesky-hosted PDS, sign up
+            through{' '}
+            {
+              <InlineLinkText label={_(msg`bsky.app`)} to="https://bsky.app">
+                <Trans>bsky.app</Trans>
+              </InlineLinkText>
+            }{' '}
+            first then return to deer.social and log in.
           </Trans>
         </Text>
       </View>
