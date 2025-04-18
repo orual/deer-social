@@ -525,17 +525,14 @@ async function responseToBlockedThreadNodes(
       ? findAllReplies(agent, postPrefs, uri, depth)
       : undefined
 
-  const post = (await directFetchPostRecord(agent, uri))!
+  const post = await directFetchPostRecord(agent, uri)
+  if (post === undefined) {
+    return {type: 'not-found', _reactKey: uri, uri, ctx: {depth}}
+  }
   const record = post.record
-  // WARN: TODO: validate since this is pds data lol
-  if (
-    !bsky.dangerousIsType<AppBskyFeedPost.Record>(
-      record,
-      AppBskyFeedPost.isRecord,
-    )
-  ) {
+  if (!bsky.validate(record, AppBskyFeedPost.validateRecord)) {
     // fall back, pds did something funky
-    return {type: 'blocked', _reactKey: uri, uri, ctx: {depth}}
+    return {type: 'unknown', uri}
   }
 
   const parent =
