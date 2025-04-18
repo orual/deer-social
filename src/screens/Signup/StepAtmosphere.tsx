@@ -47,14 +47,14 @@ export function StepAtmosphere({
   return (
     <ScreenTransition>
       <View style={[a.gap_xl]}>
-        <Text style={[a.gap_md]}>
+        <Text style={[a.gap_md, a.leading_snug]}>
           <Trans>
             deer.social is part of the{' '}
             {
               <InlineLinkText
-                label={_(msg`Atmosphere`)}
+                label={_(msg`ATmosphere`)}
                 to="https://atproto.com/">
-                <Trans>Atmosphere</Trans>
+                <Trans>ATmosphere</Trans>
               </InlineLinkText>
             }
             —the network of apps, services, and accounts built on the AT
@@ -63,25 +63,25 @@ export function StepAtmosphere({
             with your existing account.
           </Trans>
         </Text>
-        <View style={isWeb && [a.flex_row, a.justify_center]}>
+        <View style={isWeb && [a.flex_row, a.justify_start]}>
           <Button
             testID="signInButton"
             onPress={onPressSignIn}
-            label={_(msg`Sign in with Atmosphere`)}
+            label={_(msg`Sign in with ATmosphere`)}
             accessibilityHint={_(
-              msg`Opens flow to sign in to your existing Atmosphere account`,
+              msg`Opens flow to sign in to your existing ATmosphere account`,
             )}
             size="large"
             variant="solid"
             color="primary">
             <ButtonText>
-              <Trans>Sign in with Atmosphere</Trans>
+              <Trans>Sign in with ATmosphere</Trans>
             </ButtonText>
           </Button>
         </View>
-        <Text style={[a.gap_md, t.atoms.text_contrast_medium]}>
+        <Text style={[a.gap_md, t.atoms.text_contrast_medium, a.leading_snug]}>
           <Trans>
-            Don’t have an account in the Atmosphere yet? You can create one on
+            Don’t have an account in the ATmosphere yet? You can create one on
             the next page. Just note that you'll need to choose a Personal Data
             Server (
             {
