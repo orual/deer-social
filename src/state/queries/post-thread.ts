@@ -24,7 +24,7 @@ import {
 } from '#/state/queries/search-posts'
 import {useAgent} from '#/state/session'
 import * as bsky from '#/types/bsky'
-import {useConstellationEnabled} from '../preferences/constellation-enabled'
+import {useConstellationPrefs} from '../preferences/constellation'
 import {useDirectFetchRecords} from '../preferences/direct-fetch-records'
 import {
   asUri,
@@ -110,7 +110,10 @@ export type PostThreadQueryData = {
 
 type DeerPostPrefs = {
   directFetchRecords: boolean
-  constellationEnabled: boolean
+  constellationPrefs: {
+    enabled: boolean
+    url: string
+  }
 }
 
 export function usePostThreadQuery(uri: string | undefined) {
@@ -118,8 +121,8 @@ export function usePostThreadQuery(uri: string | undefined) {
   const agent = useAgent()
 
   const directFetchRecords = useDirectFetchRecords() ?? false
-  const constellationEnabled = useConstellationEnabled() ?? false
-  const deerPrefs: DeerPostPrefs = {directFetchRecords, constellationEnabled}
+  const constellationPrefs = useConstellationPrefs()
+  const deerPrefs: DeerPostPrefs = {directFetchRecords, constellationPrefs}
 
   return useQuery<PostThreadQueryData, Error>({
     gcTime: 0,
@@ -404,8 +407,11 @@ async function responseToThreadNodes(
         : undefined
 
     const blockedReplies = (async () => {
-      if (direction === 'up' || !postPrefs.constellationEnabled) return
-      const counts = await constellationCounts({target: node.post.uri})
+      if (direction === 'up' || !postPrefs.constellationPrefs.enabled) return
+      const counts = await constellationCounts(
+        postPrefs.constellationPrefs.url,
+        {target: node.post.uri},
+      )
 
       if (counts.replyCount <= (node.replies?.length ?? 0)) return
 
@@ -432,8 +438,6 @@ async function responseToThreadNodes(
       if (blocked === undefined) return appview
       return appview.concat(blocked)
     })()
-
-    console.log(await replies)
 
     return {
       type: 'post',
@@ -482,7 +486,7 @@ async function findAllReplies(
     asyncGenMap(
       asyncGenFilter(
         asyncGenMap(
-          constellationLinks({
+          constellationLinks(postPrefs.constellationPrefs.url, {
             target: uri,
             collection: 'app.bsky.feed.post',
             path: '.reply.parent.uri',
@@ -513,10 +517,11 @@ async function responseToBlockedThreadNodes(
   // kick these off first to run in parallel!
   // no dependency on the record
   const counts =
-    postPrefs.constellationEnabled && constellationCounts({target: uri})
+    postPrefs.constellationPrefs.enabled &&
+    constellationCounts(postPrefs.constellationPrefs.url, {target: uri})
 
   const replies =
-    direction !== 'up' && postPrefs.constellationEnabled
+    direction !== 'up' && postPrefs.constellationPrefs.enabled
       ? findAllReplies(agent, postPrefs, uri, depth)
       : undefined
 

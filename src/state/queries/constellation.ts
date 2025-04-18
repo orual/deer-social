@@ -1,5 +1,3 @@
-const CONSTELLATION_INSTANCE = 'https://constellation.microcosm.blue/'
-
 type ConstellationLink = {
   did: string
   collection: string
@@ -26,8 +24,12 @@ const headers = new Headers({
   'User-Agent': 'deer.social (contact @aviva.gay)',
 })
 
-const makeReqUrl = (route: string, params: Record<string, string>) => {
-  const url = new URL(CONSTELLATION_INSTANCE)
+const makeReqUrl = (
+  instance: string,
+  route: string,
+  params: Record<string, string>,
+) => {
+  const url = new URL(instance)
   url.pathname = route
   for (const [k, v] of Object.entries(params)) {
     url.searchParams.set(k, v)
@@ -37,12 +39,15 @@ const makeReqUrl = (route: string, params: Record<string, string>) => {
 
 // using an async generator lets us kick off dependent requests before finishing pagination
 // this doesn't solve the gross N+1 queries thing going on here to get records, but it should make it faster :3
-export async function* constellationLinks(params: {
-  target: string
-  collection: Collection
-  path: string
-}) {
-  const url = makeReqUrl('links', params)
+export async function* constellationLinks(
+  instance: string,
+  params: {
+    target: string
+    collection: Collection
+    path: string
+  },
+) {
+  const url = makeReqUrl(instance, 'links', params)
 
   const req = async () =>
     (await (await fetch(url, {method: 'GET', headers})).json()) as {
@@ -65,8 +70,11 @@ export async function* constellationLinks(params: {
   }
 }
 
-export async function constellationCounts(params: {target: string}) {
-  const url = makeReqUrl('links/all', params)
+export async function constellationCounts(
+  instance: string,
+  params: {target: string},
+) {
+  const url = makeReqUrl(instance, 'links/all', params)
   const json = (await (await fetch(url, {method: 'GET', headers})).json()) as {
     links: {
       [P in Collection]?: {

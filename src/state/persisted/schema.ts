@@ -126,7 +126,12 @@ const schema = z.object({
 
   // deer
   goLinksEnabled: z.boolean().optional(),
-  constellationEnabled: z.boolean().optional(),
+  constellation: z
+    .object({
+      enabled: z.boolean().optional(),
+      url: z.string().optional(),
+    })
+    .optional(),
   directFetchRecords: z.boolean().optional(),
   noAppLabelers: z.boolean().optional(),
   noDiscoverFallback: z.boolean().optional(),
@@ -185,7 +190,10 @@ export const defaults: Schema = {
 
   // deer
   goLinksEnabled: true,
-  constellationEnabled: false,
+  constellation: {
+    enabled: false,
+    url: 'https://constellation.microcosm.blue',
+  },
   directFetchRecords: false,
   noAppLabelers: false,
   noDiscoverFallback: false,
