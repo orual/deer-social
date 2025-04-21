@@ -2,10 +2,16 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     systems.url = "github:nix-systems/default";
+    wrangler-flake.url = "github:ryand56/wrangler";
   };
 
   outputs =
-    { nixpkgs, systems, ... }:
+    {
+      nixpkgs,
+      systems,
+      wrangler-flake,
+      ...
+    }:
     let
       forAllSystems =
         function: nixpkgs.lib.genAttrs (import systems) (system: function nixpkgs.legacyPackages.${system});
@@ -27,6 +33,11 @@
 
               typescript
               typescript-language-server
+
+              go
+              gopls
+
+              wrangler-flake.packages.${system}.wrangler
             ];
           };
       });
