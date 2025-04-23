@@ -8,11 +8,11 @@ import {
 } from 'react-native'
 import * as Clipboard from 'expo-clipboard'
 import {
-  AppBskyFeedDefs,
-  AppBskyFeedPost,
-  AppBskyFeedThreadgate,
+  type AppBskyFeedDefs,
+  type AppBskyFeedPost,
+  type AppBskyFeedThreadgate,
   AtUri,
-  RichText as RichTextAPI,
+  type RichText as RichTextAPI,
 } from '@atproto/api'
 import {msg, plural} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
@@ -26,7 +26,7 @@ import {makeProfileLink} from '#/lib/routes/links'
 import {shareUrl} from '#/lib/sharing'
 import {useGate} from '#/lib/statsig/statsig'
 import {toShareUrl} from '#/lib/strings/url-helpers'
-import {Shadow} from '#/state/cache/types'
+import {type Shadow} from '#/state/cache/types'
 import {useFeedFeedbackContext} from '#/state/feed-feedback'
 import {
   usePostLikeMutationQueue,
@@ -340,7 +340,7 @@ let PostCtrls = ({
               testID="shareBtn"
               style={btnStyle}
               onPress={() => {
-                if (shouldShowLoggedOutWarning) {
+                if (false && shouldShowLoggedOutWarning) {
                   loggedOutWarningPromptControl.open()
                 } else {
                   onShare()
